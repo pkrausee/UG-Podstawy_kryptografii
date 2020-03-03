@@ -163,9 +163,9 @@ public class cezar {
             char c = text.charAt(i);
 
             if (Character.isUpperCase(c)) {
-                builder.append((char) (((c - key - BIG_CASE) % CHARS) + BIG_CASE));
+                builder.append((char) (((c - key - BIG_CASE + CHARS) % CHARS) + BIG_CASE));
             } else if (Character.isLowerCase(c)) {
-                builder.append((char) (((c - key - LOWER_CASE) % CHARS) + LOWER_CASE));
+                builder.append((char) (((c - key - LOWER_CASE + CHARS) % CHARS) + LOWER_CASE));
             } else {
                 builder.append(c);
             }
