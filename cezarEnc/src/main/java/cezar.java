@@ -1,13 +1,12 @@
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class Crypto {
+public class cezar {
     private static final int CHARS = 26;
     private static final int BIG_CASE = 65;
     private static final int LOWER_CASE = 97;
@@ -48,8 +47,7 @@ public class Crypto {
                         out.println(affineDecrypt());
                         break;
                     case "-j":
-                        int[] foundKey = affineAnaliseWithPlain();
-                        out.println(Arrays.stream(foundKey).mapToObj(String::valueOf).reduce((a, b) -> a.concat(" ").concat(b)).orElse(""));
+                        out.println(affineAnaliseWithPlain());
                         break;
                     case "-k":
                         affineAnalise().forEach(out::println);
@@ -61,7 +59,7 @@ public class Crypto {
             } else {
                 System.err.println("Wrong options. ");
             }
-        }catch (NumberFormatException ne) {
+        } catch (NumberFormatException | IndexOutOfBoundsException ne) {
             System.err.println("Wrong key. ");
         } catch (IOException ie) {
             System.err.println("Input files not found. ");
@@ -69,59 +67,61 @@ public class Crypto {
     }
 
     private static String caesarEncrypt() throws IOException {
-        String plain = Files.readString(Path.of(PLAIN), StandardCharsets.ISO_8859_1);
-        int key = Integer.parseInt(Files.readString(Path.of(KEY), StandardCharsets.ISO_8859_1));
+        int key = Integer.parseInt(Files.readString(Path.of(KEY)));
+        String plain = Files.readString(Path.of(PLAIN));
 
         return caesarEncrypt(plain, key);
     }
 
     private static String caesarDecrypt() throws IOException {
-        String crypto = Files.readString(Path.of(CRYPTO), StandardCharsets.ISO_8859_1);
-        int key = Integer.parseInt(Files.readString(Path.of(KEY), StandardCharsets.ISO_8859_1));
+        int key = Integer.parseInt(Files.readString(Path.of(KEY)));
+        String crypto = Files.readString(Path.of(CRYPTO));
 
         return caesarDecrypt(crypto, key);
     }
 
+    private static String caesarAnaliseWithPlain() throws IOException {
+        String extra = Files.readString(Path.of(EXTRA));
+        String crypto = Files.readString(Path.of(CRYPTO));
+
+        return caesarAnaliseWithPlain(extra, crypto);
+    }
+    
     private static List<String> caesarAnalise() throws IOException {
-        String crypto = Files.readString(Path.of(CRYPTO), StandardCharsets.ISO_8859_1);
+        String crypto = Files.readString(Path.of(CRYPTO));
 
         return caesarAnalise(crypto);
     }
 
-    private static int caesarAnaliseWithPlain() throws IOException {
-        String plain = Files.readString(Path.of(PLAIN), StandardCharsets.ISO_8859_1);
-        String crypto = Files.readString(Path.of(CRYPTO), StandardCharsets.ISO_8859_1);
-
-        return caesarAnaliseWithPlain(plain, crypto);
-    }
-
     private static String affineEncrypt() throws IOException {
-        String plain = Files.readString(Path.of(PLAIN), StandardCharsets.ISO_8859_1);
-        int[] key = Arrays.stream(Files.readString(Path.of(KEY), StandardCharsets.ISO_8859_1).split(" "))
+        int[] key = Arrays.stream(Files.readString(Path.of(KEY)).split(" "))
                 .mapToInt(Integer::parseInt).toArray();
+
+        String plain = Files.readString(Path.of(PLAIN));
 
         return affineEncrypt(plain, key);
     }
 
     private static String affineDecrypt() throws IOException {
-        String crypto = Files.readString(Path.of(CRYPTO), StandardCharsets.ISO_8859_1);
-        int[] key = Arrays.stream(Files.readString(Path.of(KEY), StandardCharsets.ISO_8859_1).split(" "))
+        int[] key = Arrays.stream(Files.readString(Path.of(KEY)).split(" "))
                 .mapToInt(Integer::parseInt).toArray();
+
+        String crypto = Files.readString(Path.of(CRYPTO));
 
         return affineDecrypt(crypto, key);
     }
 
     private static List<String> affineAnalise() throws IOException {
-        String crypto = Files.readString(Path.of(CRYPTO), StandardCharsets.ISO_8859_1);
+        String crypto = Files.readString(Path.of(CRYPTO));
 
         return affineAnalise(crypto);
     }
 
-    private static int[] affineAnaliseWithPlain() throws IOException {
-        String plain = Files.readString(Path.of(PLAIN), StandardCharsets.ISO_8859_1);
-        String crypto = Files.readString(Path.of(CRYPTO), StandardCharsets.ISO_8859_1);
+    private static String affineAnaliseWithPlain() throws IOException {
+        String extra = Files.readString(Path.of(EXTRA));
+        String crypto = Files.readString(Path.of(CRYPTO));
 
-        return affineAnaliseWithPlain(plain, crypto);
+        return affineAnaliseWithPlain(extra, crypto);
     }
 
     private static String caesarEncrypt(String text, int key) {
@@ -174,6 +174,23 @@ public class Crypto {
         return builder.toString();
     }
 
+    private static String caesarAnaliseWithPlain(String extra, String crypto) {
+        // Remove line delimiters.
+        extra = extra.replace("\n", "").replace("\r", "");
+        crypto = crypto.replace("\n", "").replace("\r", "");
+
+        for (int i = 0; i <= CHARS; i++) {
+            String extraCrypto = caesarEncrypt(extra, i);
+
+            if (crypto.contains(extraCrypto)) {
+                return i + " " + caesarDecrypt(crypto, i);
+            }
+
+        }
+
+        return "";
+    }
+
     private static List<String> caesarAnalise(String crypto) {
         // Remove line delimiters.
         crypto = crypto.replace("\n", "").replace("\r", "");
@@ -191,23 +208,6 @@ public class Crypto {
         }
 
         return analise;
-    }
-
-    private static int caesarAnaliseWithPlain(String plain, String crypto) {
-        // Remove line delimiters.
-        plain = plain.replace("\n", "").replace("\r", "");
-        crypto = crypto.replace("\n", "").replace("\r", "");
-
-        for (int i = 0; i <= CHARS; i++) {
-            String decrypted = caesarDecrypt(crypto, i);
-
-            if (plain.equals(decrypted)) {
-                return i;
-            }
-
-        }
-
-        return -1;
     }
 
     private static String affineEncrypt(String text, int[] key) {
@@ -260,6 +260,27 @@ public class Crypto {
         return builder.toString();
     }
 
+    private static String affineAnaliseWithPlain(String extra, String crypto) {
+        // Remove line delimiters.
+        extra = extra.replace("\n", "").replace("\r", "");
+        crypto = crypto.replace("\n", "").replace("\r", "");
+
+        for (int i = 1; i <= CHARS; i++) {
+            for (int j = 1; j <= CHARS; j++) {
+
+                if (gcd(i, CHARS) == 1) {
+                    String extraCrypto = affineEncrypt(extra, new int[]{i, j});
+
+                    if (crypto.contains(extraCrypto)) {
+                        return i + " " + j + " " + affineDecrypt(crypto, new int[] {i, j});
+                    }
+                }
+            }
+        }
+
+        return "";
+    }
+
     private static List<String> affineAnalise(String crypto) {
         // Remove line delimiters.
         crypto = crypto.replace("\n", "").replace("\r", "");
@@ -284,27 +305,6 @@ public class Crypto {
         }
 
         return analise;
-    }
-
-    private static int[] affineAnaliseWithPlain(String plain, String crypto) {
-        // Remove line delimiters.
-        plain = plain.replace("\n", "").replace("\r", "");
-        crypto = crypto.replace("\n", "").replace("\r", "");
-
-        for (int i = 1; i <= CHARS; i++) {
-            for (int j = 1; j <= CHARS; j++) {
-
-                if (gcd(i, CHARS) == 1) {
-                    String decrypted = affineDecrypt(crypto, new int[]{i, j});
-
-                    if (plain.equals(decrypted)) {
-                        return new int[] {i, j};
-                    }
-                }
-            }
-        }
-
-        return new int[] {};
     }
 
     private static int aInv(int[] key) {
@@ -356,7 +356,7 @@ public class Crypto {
                     crypto(KEY_FOUND, args[0], args[1]);
                     break;
                 case "-k":
-                    crypto(EXTRA, args[0], args[1]);
+                    crypto(PLAIN, args[0], args[1]);
                     break;
                 default:
                     System.err.println("Wrong arguments");
